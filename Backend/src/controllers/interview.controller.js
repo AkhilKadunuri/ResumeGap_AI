@@ -36,6 +36,10 @@ async function generateInterViewReportController(req, res) {
             });
         }
 
+        selfDescription: selfDescription && selfDescription.trim().length > 20 
+        ? selfDescription 
+        : "Candidate has basic skills but limited description provided"
+
         let interViewReportByAi = {};
 
         try {
@@ -48,11 +52,17 @@ async function generateInterViewReportController(req, res) {
             console.log("AI RESPONSE:", interViewReportByAi);
 
         } catch (err) {
-            console.log("AI ERROR:", err);
+            console.log("AI ERROR:", err.message);
 
-            return res.status(500).json({
-                message: "AI service failed. Try again."
-            });
+            interViewReportByAi = {
+                title: "Basic Interview Plan",
+                matchScore: 50,
+                feedback: "AI is currently busy. Please try again later.",
+                technicalQuestions: [],
+                behavioralQuestions: [],
+                skillGaps: [],
+                preparationPlan: []
+            };
         }
 
         const interviewReport = await interviewReportModel.create({
