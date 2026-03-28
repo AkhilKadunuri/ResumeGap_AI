@@ -43,7 +43,7 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
 `
 
     const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash-latest",
+        model: "gemini-1.5-flash",
         contents: prompt,
         config: {
             responseMimeType: "application/json",
@@ -97,13 +97,14 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
                     `
 
     const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash-latest",
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: zodToJsonSchema(resumePdfSchema),
-        }
-    })
+        model: "gemini-1.5-flash",
+        contents: [
+            {
+                role: "user",
+                parts: [{ text: prompt }]
+            }
+        ]
+    });
 
 
     const jsonContent = JSON.parse(response.text)
