@@ -1,8 +1,6 @@
-const pdfParse = require("pdf-parse/lib/pdf-parse");
+const pdfParse = require("pdf-parse");
 const { generateInterviewReport, generateResumePdf } = require("../services/ai.service")
 const interviewReportModel = require("../models/interviewReport.model")
-
-
 
 
 /**
@@ -32,7 +30,7 @@ async function generateInterViewReportController(req, res) {
         }
 
         // Validation
-        if ((!resumeText || resumeText.trim() === "") && (!selfDescription || selfDescription.trim() === "")) {
+        if (!req.file && (!selfDescription || selfDescription.trim() === "")) {
             return res.status(400).json({
                 message: "Provide either resume or self description"
             });
