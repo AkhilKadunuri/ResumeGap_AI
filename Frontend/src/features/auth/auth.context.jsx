@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
 
     const fetchUser = async () => {
         try {
-            const res = await axios.get("http://localhost:3000/api/auth/get-me", {
+            const res = await axios.get("https://resumegap-ai.onrender.com/api/auth/get-me", {
                 withCredentials: true
             });
 
@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
         try {
-            await axios.get("http://localhost:3000/api/auth/logout", {
+            await axios.get("https://resumegap-ai.onrender.com/api/auth/logout", {
                 withCredentials: true
             });
 
