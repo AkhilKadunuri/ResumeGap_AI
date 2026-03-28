@@ -8,8 +8,8 @@ app.use(express.json())
 app.use(cookieParser())
 app.use(cors({
     origin: [
-        "http://localhost:5173",
-        "https://resumegap-ai.onrender.com"
+        "https://resume-gap-ai.vercel.app",
+        "http://localhost:5173"
     ],
     credentials: true
 }))
