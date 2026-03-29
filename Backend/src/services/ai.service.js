@@ -30,7 +30,8 @@ const interviewReportSchema = z.object({
 })
 
 async function generateInterviewReport({ resume, selfDescription, jobDescription }) {
-
+    console.log("KEY:", process.env.OPENROUTER_API_KEY);
+    
     const prompt = `
 Generate a professional interview report in STRICT JSON format.
 
@@ -80,7 +81,7 @@ Return ONLY JSON with:
     const response = await axios.post(
         "https://openrouter.ai/api/v1/chat/completions",
         {
-            model: "mistralai/mistral-7b-instruct",
+            model: "openai/gpt-3.5-turbo",
             messages: [
                 {
                     role: "user",
