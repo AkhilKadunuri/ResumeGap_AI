@@ -2,7 +2,7 @@ const axios = require("axios");
 const puppeteer = require("puppeteer-core");
 const chromium = require("@sparticuz/chromium");
 
-// generate interview report
+// interview report
 async function generateInterviewReport({ resume, selfDescription, jobDescription }) {
 
     const prompt = `
@@ -13,13 +13,19 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
         rules:
         - output only json
         - matchScore must be integer (0–100)
-        - each field must follow correct structure
         - do not repeat questions
+
+        VERY IMPORTANT:
+        - each technical question MUST include:
+          question, intention, answer
+        - each behavioral question MUST include:
+          question, intention, answer
+        - DO NOT leave intention or answer empty
+        - answers must be specific to the question (not generic)
+
         - you must compare resume, self description, and job description (if provided)
         - if job description is not provided, evaluate candidate based on resume and self description only
-        - identify missing skills by comparing candidate profile with job requirements (if available)
-        - if job description is unrelated to candidate profile, matchScore must be LOW (below 40)
-        - if many important skills are missing, matchScore must decrease accordingly
+        - if profile is unrelated, matchScore must be LOW
 
         resume:
         ${resume || "Not provided"}
@@ -39,7 +45,7 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
         "skillGaps": [],
         "preparationPlan": []
         }
-        `;
+    `;
 
     const response = await axios.post(
         "https://openrouter.ai/api/v1/chat/completions",
@@ -78,32 +84,20 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
             : Math.round(result.matchScore);
     }
 
-    const normalize = (q, type) => {
-        const questionText = q?.question || (typeof q === "string" ? q : "explain a concept");
-
-        return {
-            question: questionText,
-
-            // must NOT be empty (for DB)
-            intention: q?.intention && q.intention.trim() !== ""
-                ? q.intention
-                : (type === "tech"
-                    ? "Understand the concept behind the question"
-                    : "Evaluate behavioral and situational response"),
-
-            answer: q?.answer && q.answer.trim() !== ""
-                ? q.answer
-                : (type === "tech"
-                    ? "Explain the concept clearly with examples"
-                    : "Answer using a real-life example with STAR method")
-        };
+    const validateQuestions = (arr) => {
+        return (arr || []).filter(q =>
+            q &&
+            q.question &&
+            q.intention &&
+            q.answer &&
+            q.question.trim() !== "" &&
+            q.intention.trim() !== "" &&
+            q.answer.trim() !== ""
+        );
     };
 
-    result.technicalQuestions = (result.technicalQuestions || [])
-        .map(q => normalize(q, "tech"));
-
-    result.behavioralQuestions = (result.behavioralQuestions || [])
-        .map(q => normalize(q, "behav"));
+    result.technicalQuestions = validateQuestions(result.technicalQuestions);
+    result.behavioralQuestions = validateQuestions(result.behavioralQuestions);
 
     const removeDuplicates = (arr) => {
         const seen = new Set();
@@ -132,11 +126,11 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
         };
     });
 
+    // roadmap
     result.preparationPlan = (result.preparationPlan || []).map((p, i) => {
 
         const extractShortTitle = (text) => {
             if (!text) return "focused practice";
-
             const words = text.split(" ");
             return words.slice(0, 4).join(" ");
         };
@@ -144,8 +138,8 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
         if (typeof p === "string") {
             return {
                 day: i + 1,
-                focus: extractShortTitle(p), 
-                tasks: [p] 
+                focus: extractShortTitle(p),
+                tasks: [p]
             };
         }
 
@@ -155,11 +149,9 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
 
         return {
             day: p.day || i + 1,
-
             focus: p.focus && p.focus.length < 40
                 ? p.focus
                 : extractShortTitle(taskText),
-
             tasks: Array.isArray(p.tasks) && p.tasks.length > 0
                 ? p.tasks
                 : [taskText || "practice fundamentals"]
@@ -174,11 +166,10 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
         if (severity === "low") score -= 5;
         else if (severity === "medium") score -= 10;
         else if (severity === "high") score -= 15;
-        else score -= 10; // default if missing
+        else score -= 10;
     });
 
     score = Math.max(score, 10);
-
     result.matchScore = score;
 
     return result;
@@ -209,7 +200,7 @@ async function generatePdfFromHtml(htmlContent) {
     return pdfBuffer;
 }
 
-// resume generation
+// resume generation 
 async function generateResumePdf({ resume, selfDescription, jobDescription }) {
 
     const prompt = `
