@@ -128,6 +128,7 @@ async function generatePdfFromHtml(htmlContent) {
     return pdfBuffer
 }
 
+/*
 async function generateResumePdf({ resume, selfDescription, jobDescription }) {
 
     const resumePdfSchema = z.object({
@@ -147,17 +148,6 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
                         The resume should not be so lengthy, it should ideally be 1-2 pages long when converted to PDF. Focus on quality rather than quantity and make sure to include all the relevant information that can increase the candidate's chances of getting an interview call for the given job description.
                     `
 
-    const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: [
-            {
-                role: "user",
-                parts: [{ text: prompt }]
-            }
-        ]
-    });
-
-
     const text = response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
     const cleaned = text.replace(/```json|```/g, "").trim();
     const jsonContent = JSON.parse(cleaned);
@@ -166,6 +156,18 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
 
     return pdfBuffer
 
+}
+*/
+
+async function generateResumePdf({ resume, selfDescription, jobDescription }) {
+    return {
+        title: "Temporary Report",
+        matchScore: 70,
+        technicalQuestions: [],
+        behavioralQuestions: [],
+        skillGaps: [],
+        preparationPlan: []
+    };
 }
 
 module.exports = { generateInterviewReport, generateResumePdf }
