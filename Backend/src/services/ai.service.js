@@ -2,29 +2,32 @@ const axios = require("axios");
 const puppeteer = require("puppeteer-core");
 const chromium = require("@sparticuz/chromium");
 
-
+// generate interview report
 async function generateInterviewReport({ resume, selfDescription, jobDescription }) {
 
     const prompt = `
 You are an expert technical interviewer.
 
-Generate a HIGH-QUALITY interview report.
+Generate a high-quality interview report.
 
-⚠️ RULES:
-- Output ONLY JSON
-- matchScore must be INTEGER (0–100)
-- Include detailed structured questions
+rules:
+- output only json
+- matchScore must be integer (0–100)
+- each technical question must include: question, intention, answer
+- each behavioral question must include: question, intention, answer
+- do not repeat questions
+- generate at least 10 technical and 6 behavioral questions
 
-Resume:
+resume:
 ${resume || "Not provided"}
 
-Self Description:
+self description:
 ${selfDescription || "Not provided"}
 
-Job Description:
+job description:
 ${jobDescription}
 
-Return JSON format:
+return json:
 {
   "title": "string",
   "matchScore": number,
@@ -57,105 +60,91 @@ Return JSON format:
     try {
         result = JSON.parse(cleaned);
     } catch (err) {
-        console.log("JSON ERROR:", cleaned);
-        throw new Error("Invalid AI response");
+        console.log("json error:", cleaned);
+        throw new Error("invalid ai response");
     }
 
-    if (result.matchScore <= 1) {
-        result.matchScore = Math.round(result.matchScore * 100);
-    } else {
-        result.matchScore = Math.round(result.matchScore);
-    }
+    result.matchScore = result.matchScore <= 1
+        ? Math.round(result.matchScore * 100)
+        : Math.round(result.matchScore);
 
-    // Technical Questions 
-    result.technicalQuestions = (result.technicalQuestions || []).map(q => {
+    const normalizeQuestion = (q, type) => {
         if (typeof q === "string") {
             return {
                 question: q,
-                intention: "To evaluate technical understanding",
-                answer: "Explain clearly with examples"
+                intention: type === "tech"
+                    ? "evaluate technical understanding"
+                    : "evaluate behavior and communication",
+                answer: type === "tech"
+                    ? "explain with examples"
+                    : "use star method"
             };
         }
 
         return {
-            question: q.question || "Explain a technical concept",
-            intention: q.intention || "To evaluate technical understanding",
-            answer: q.answer || "Explain clearly with examples"
+            question: q.question || "explain a concept",
+            intention: q.intention || (
+                type === "tech"
+                    ? "evaluate technical understanding"
+                    : "evaluate behavior and communication"
+            ),
+            answer: q.answer || (
+                type === "tech"
+                    ? "explain with examples"
+                    : "use star method"
+            )
         };
-    });
+    };
 
-    // Behavioral Questions
-    result.behavioralQuestions = (result.behavioralQuestions || []).map(q => {
-        if (typeof q === "string") {
-            return {
-                question: q,
-                intention: "To evaluate communication and behavior",
-                answer: "Use STAR method"
-            };
-        }
+    result.technicalQuestions = (result.technicalQuestions || [])
+        .map(q => normalizeQuestion(q, "tech"));
 
-        return {
-            question: q.question || "Describe a real-life situation",
-            intention: q.intention || "To evaluate communication and problem-solving",
-            answer: q.answer || "Use STAR method"
-        };
-    });
+    result.behavioralQuestions = (result.behavioralQuestions || [])
+        .map(q => normalizeQuestion(q, "behav"));
 
-    // Skill Gaps
-    result.skillGaps = (result.skillGaps || []).map(s => {
-        if (typeof s === "string") {
-            return {
-                skill: s,
-                severity: "medium"
-            };
-        }
-
-        return {
-            skill: s.skill || "General Skill",
-            severity: s.severity || "medium"
-        };
-    });
-
-    // Preparation Plan
-    result.preparationPlan = (result.preparationPlan || []).map((p, i) => {
-        if (typeof p === "string") {
-            return {
-                day: i + 1,
-                focus: "General Preparation",
-                tasks: [p]
-            };
-        }
-
-        return {
-            day: p.day || i + 1,
-            focus: p.focus || "General Preparation",
-            tasks: p.tasks && p.tasks.length > 0 ? p.tasks : ["Practice concepts"]
-        };
-    });
-
-    // fixing questions count
-
-    while (result.technicalQuestions.length < 10) {
-        result.technicalQuestions.push({
-            question: "Explain a core concept from your domain.",
-            intention: "Evaluate technical understanding",
-            answer: "Explain with examples"
+    const removeDuplicates = (arr) => {
+        const seen = new Set();
+        return arr.filter(q => {
+            const key = q.question.trim().toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
         });
-    }
+    };
 
-    while (result.behavioralQuestions.length < 6) {
-        result.behavioralQuestions.push({
-            question: "Describe a challenging situation you handled.",
-            intention: "Evaluate communication",
-            answer: "Use STAR method"
-        });
-    }
+    result.technicalQuestions = removeDuplicates(result.technicalQuestions);
+    result.behavioralQuestions = removeDuplicates(result.behavioralQuestions);
+
+    const expandQuestions = (arr, minCount) => {
+        let i = 0;
+
+        while (arr.length < minCount && arr.length > 0) {
+            const base = arr[i % arr.length];
+
+            const newQuestion = {
+                question: base.question + " (variation)",
+                intention: base.intention,
+                answer: base.answer
+            };
+
+            if (!arr.some(q => q.question === newQuestion.question)) {
+                arr.push(newQuestion);
+            }
+
+            i++;
+            if (i > 20) break;
+        }
+
+        return arr;
+    };
+
+    result.technicalQuestions = expandQuestions(result.technicalQuestions, 10);
+    result.behavioralQuestions = expandQuestions(result.behavioralQuestions, 6);
 
     return result;
 }
 
-// pdf generation
-
+// generating pdf from html
 async function generatePdfFromHtml(htmlContent) {
     const browser = await puppeteer.launch({
         args: chromium.args,
@@ -180,30 +169,29 @@ async function generatePdfFromHtml(htmlContent) {
     return pdfBuffer;
 }
 
-//Resume generation
-
+// resume pdf
 async function generateResumePdf({ resume, selfDescription, jobDescription }) {
 
     const prompt = `
 You are a professional resume writer.
 
-Generate ATS-friendly resume in HTML.
+generate ats-friendly resume in html.
 
-⚠️ RULES:
-- Output ONLY JSON
-- Must contain "html"
-- HTML must be complete
+rules:
+- output only json
+- must contain "html"
+- html must be complete
 
-Resume:
+resume:
 ${resume || "Not provided"}
 
-Self Description:
+self description:
 ${selfDescription || "Not provided"}
 
-Job Description:
+job description:
 ${jobDescription}
 
-Return:
+return:
 {
   "html": "<!DOCTYPE html>...complete resume..."
 }
@@ -232,12 +220,11 @@ Return:
         const jsonContent = JSON.parse(cleaned);
         htmlContent = jsonContent.html;
     } catch (err) {
-        console.log("JSON ERROR:", cleaned);
         htmlContent = cleaned;
     }
 
     if (!htmlContent || htmlContent.length < 50) {
-        throw new Error("Invalid HTML generated");
+        throw new Error("invalid html generated");
     }
 
     return await generatePdfFromHtml(htmlContent);
