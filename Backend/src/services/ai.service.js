@@ -78,11 +78,26 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
             : Math.round(result.matchScore);
     }
 
-    const normalize = (q, type) => ({
-        question: q?.question || (typeof q === "string" ? q : "explain a concept"),
-        intention: q?.intention || "",
-        answer: q?.answer || ""
-    });
+    const normalize = (q, type) => {
+        const questionText = q?.question || (typeof q === "string" ? q : "explain a concept");
+
+        return {
+            question: questionText,
+
+            // must NOT be empty (for DB)
+            intention: q?.intention && q.intention.trim() !== ""
+                ? q.intention
+                : (type === "tech"
+                    ? "Understand the concept behind the question"
+                    : "Evaluate behavioral and situational response"),
+
+            answer: q?.answer && q.answer.trim() !== ""
+                ? q.answer
+                : (type === "tech"
+                    ? "Explain the concept clearly with examples"
+                    : "Answer using a real-life example with STAR method")
+        };
+    };
 
     result.technicalQuestions = (result.technicalQuestions || [])
         .map(q => normalize(q, "tech"));
