@@ -132,7 +132,7 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
         const extractShortTitle = (text) => {
             if (!text) return "focused practice";
             const words = text.split(" ");
-            return words.slice(0, 4).join(" ");
+            return words.slice(0, 3).join(" ");
         };
 
         if (typeof p === "string") {
@@ -169,10 +169,16 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
         else score -= 10;
     });
 
-    score = Math.max(score, 10);
-    result.matchScore = score;
+    const profileText = (resume + " " + selfDescription).toLowerCase();
+    const jdText = (jobDescription || "").toLowerCase();
 
-    return result;
+    if (jdText && profileText && !profileText.includes(jdText.split(" ")[0])) {
+        score -= 20;
+    }
+
+    score = Math.max(score, 10);
+
+    result.matchScore = score;
 }
 
 // pdf generation
