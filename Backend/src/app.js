@@ -7,10 +7,7 @@ const app = express()
 app.use(express.json())
 app.use(cookieParser())
 app.use(cors({
-    origin: [
-        "https://resume-gap-ai.vercel.app",
-        "http://localhost:5173"
-    ],
+    origin: "https://resume-gap-ai.vercel.app",
     credentials: true
 }))
 
