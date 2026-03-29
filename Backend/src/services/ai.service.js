@@ -218,7 +218,9 @@ async function generatePdfFromHtml(htmlContent) {
 }
 
 // resume generation 
-const prompt = `
+async function generateResumePdf({ resume, selfDescription, jobDescription }) {
+
+    const prompt = `
 You are a professional resume writer.
 
 generate ats-friendly resume in html.
