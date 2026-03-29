@@ -13,8 +13,7 @@ Generate a HIGH-QUALITY interview report.
 ⚠️ RULES:
 - Output ONLY JSON
 - matchScore must be INTEGER (0–100)
-- At least 10 technical questions
-- At least 6 behavioral questions
+- Generate detailed structured questions
 
 Resume:
 ${resume || "Not provided"}
@@ -62,22 +61,67 @@ Return JSON format:
         throw new Error("Invalid AI response");
     }
 
-    // matchScore
     if (result.matchScore <= 1) {
         result.matchScore = Math.round(result.matchScore * 100);
     } else {
         result.matchScore = Math.round(result.matchScore);
     }
 
-    result.technicalQuestions = result.technicalQuestions || [];
-    result.behavioralQuestions = result.behavioralQuestions || [];
 
-    // minimum
+    // Technical Questions
+    result.technicalQuestions = (result.technicalQuestions || []).map(q => {
+        if (typeof q === "string") {
+            return {
+                question: q,
+                intention: "To evaluate technical understanding",
+                answer: "Explain clearly with examples"
+            };
+        }
+        return q;
+    });
+
+    // Behavioral Questions
+    result.behavioralQuestions = (result.behavioralQuestions || []).map(q => {
+        if (typeof q === "string") {
+            return {
+                question: q,
+                intention: "To evaluate communication and behavior",
+                answer: "Use STAR method"
+            };
+        }
+        return q;
+    });
+
+    // Skill Gaps
+    result.skillGaps = (result.skillGaps || []).map(s => {
+        if (typeof s === "string") {
+            return {
+                skill: s,
+                severity: "medium"
+            };
+        }
+        return s;
+    });
+
+    // Preparation Plan
+    result.preparationPlan = (result.preparationPlan || []).map((p, i) => {
+        if (typeof p === "string") {
+            return {
+                day: i + 1,
+                focus: "General Preparation",
+                tasks: [p]
+            };
+        }
+        return p;
+    });
+
+    // fixing questions count
+
     while (result.technicalQuestions.length < 10) {
         result.technicalQuestions.push({
             question: "Explain a core concept from your domain.",
             intention: "Evaluate technical understanding",
-            answer: "Explain clearly with examples"
+            answer: "Explain with examples"
         });
     }
 
@@ -92,7 +136,7 @@ Return JSON format:
     return result;
 }
 
-// PDF GENERATION
+// PDF Generation
 
 async function generatePdfFromHtml(htmlContent) {
     const browser = await puppeteer.launch({
@@ -118,7 +162,7 @@ async function generatePdfFromHtml(htmlContent) {
     return pdfBuffer;
 }
 
-//RESUME GENERATION 
+// RESUME Generation
 
 async function generateResumePdf({ resume, selfDescription, jobDescription }) {
 
@@ -171,7 +215,7 @@ Return:
         htmlContent = jsonContent.html;
     } catch (err) {
         console.log("JSON ERROR:", cleaned);
-        htmlContent = cleaned; // fallback
+        htmlContent = cleaned; 
     }
 
     if (!htmlContent || htmlContent.length < 50) {
