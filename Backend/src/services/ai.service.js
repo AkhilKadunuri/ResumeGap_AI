@@ -80,16 +80,8 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
 
     const normalize = (q, type) => ({
         question: q?.question || (typeof q === "string" ? q : "explain a concept"),
-        intention: q?.intention || (
-            type === "tech"
-                ? "evaluate technical understanding"
-                : "evaluate behavior"
-        ),
-        answer: q?.answer || (
-            type === "tech"
-                ? "explain with examples"
-                : "use star method"
-        )
+        intention: q?.intention || "",
+        answer: q?.answer || ""
     });
 
     result.technicalQuestions = (result.technicalQuestions || [])

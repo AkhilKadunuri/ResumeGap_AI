@@ -25,14 +25,21 @@ const QuestionCard = ({ item, index }) => {
             </div>
             {open && (
                 <div className='q-card__body'>
-                    <div className='q-card__section'>
-                        <span className='q-card__tag q-card__tag--intention'>Intention</span>
-                        <p>{item.intention}</p>
-                    </div>
-                    <div className='q-card__section'>
-                        <span className='q-card__tag q-card__tag--answer'>Model Answer</span>
-                        <p>{item.answer}</p>
-                    </div>
+
+                    {item.intention && (
+                        <div className='q-card__section'>
+                            <span className='q-card__tag q-card__tag--intention'>Intention</span>
+                            <p>{item.intention}</p>
+                        </div>
+                    )}
+
+                    {item.answer && (
+                        <div className='q-card__section'>
+                            <span className='q-card__tag q-card__tag--answer'>Model Answer</span>
+                            <p>{item.answer}</p>
+                        </div>
+                    )}
+
                 </div>
             )}
         </div>
