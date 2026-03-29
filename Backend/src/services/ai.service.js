@@ -121,23 +121,36 @@ return json:
     });
 
     result.preparationPlan = (result.preparationPlan || []).map((p, i) => {
-    
+
+        const extractShortTitle = (text) => {
+            if (!text) return "focused practice";
+
+            const words = text.split(" ");
+            return words.slice(0, 4).join(" ");
+        };
+
         if (typeof p === "string") {
             return {
                 day: i + 1,
-                focus: p, 
-                tasks: [p]
+                focus: extractShortTitle(p), 
+                tasks: [p] 
             };
         }
+
+        const taskText = Array.isArray(p.tasks) && p.tasks.length > 0
+            ? p.tasks[0]
+            : p.focus || p.title;
 
         return {
             day: p.day || i + 1,
 
-            focus: p.focus || p.title || (p.tasks?.[0]) || "focused practice",
+            focus: p.focus && p.focus.length < 40
+                ? p.focus
+                : extractShortTitle(taskText),
 
             tasks: Array.isArray(p.tasks) && p.tasks.length > 0
                 ? p.tasks
-                : (p.focus ? [p.focus] : ["practice fundamentals"])
+                : [taskText || "practice fundamentals"]
         };
     });
 
