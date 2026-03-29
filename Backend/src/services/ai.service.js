@@ -1,11 +1,7 @@
-const { GoogleGenAI } = require("@google/genai")
+const axios = require("axios");
 const { z } = require("zod")
 const { zodToJsonSchema } = require("zod-to-json-schema")
 const puppeteer = require("puppeteer")
-
-const ai = new GoogleGenAI({
-    apiKey: process.env.GOOGLE_GENAI_API_KEY
-})
 
 
 
@@ -35,43 +31,81 @@ const interviewReportSchema = z.object({
 
 async function generateInterviewReport({ resume, selfDescription, jobDescription }) {
 
-    const prompt = `Generate an interview report:
+    const prompt = `
+Generate a professional interview report in STRICT JSON format.
 
-    Resume: ${resume}
-    Self Description: ${selfDescription}
-    Job Description: ${jobDescription}
+Resume:
+${resume}
 
-    Return ONLY valid JSON.
-    `;
+Self Description:
+${selfDescription}
 
-    const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: [
-            {
-                role: "user",
-                parts: [{ text: prompt }]
+Job Description:
+${jobDescription}
+
+Return ONLY JSON with:
+{
+  "title": string,
+  "matchScore": number,
+  "technicalQuestions": [
+    {
+      "question": string,
+      "intention": string,
+      "answer": string
+    }
+  ],
+  "behavioralQuestions": [
+    {
+      "question": string,
+      "intention": string,
+      "answer": string
+    }
+  ],
+  "skillGaps": [
+    {
+      "skill": string,
+      "severity": "low" | "medium" | "high"
+    }
+  ],
+  "preparationPlan": [
+    {
+      "day": number,
+      "focus": string,
+      "tasks": string[]
+    }
+  ]
+}
+`;
+
+    const response = await axios.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+            model: "mistralai/mistral-7b-instruct",
+            messages: [
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ]
+        },
+        {
+            headers: {
+                Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                "Content-Type": "application/json"
             }
-        ]
-    });
+        }
+    );
 
-    console.log("AI RAW:", JSON.stringify(response, null, 2));
-
-    let text = "";
-
-    try {
-        text = response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    } catch (err) {
-        console.log("PARSE ERROR:", err);
-        throw new Error("AI parsing failed");
-    }
-
-    if (!text) {
-        throw new Error("Empty AI response");
-    }
+    const text = response.data.choices[0].message.content;
 
     const cleaned = text.replace(/```json|```/g, "").trim();
 
-    return JSON.parse(cleaned);
+    try {
+        return JSON.parse(cleaned);
+    } catch (err) {
+        console.log("JSON ERROR:", cleaned);
+        throw new Error("Invalid AI response");
+    }
 }
 
 
@@ -124,7 +158,9 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
     });
 
 
-    const jsonContent = JSON.parse(response.text)
+    const text = response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const cleaned = text.replace(/```json|```/g, "").trim();
+    const jsonContent = JSON.parse(cleaned);
 
     const pdfBuffer = await generatePdfFromHtml(jsonContent.html)
 
